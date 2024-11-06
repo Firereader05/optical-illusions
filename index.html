@@ -1,1 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Fractal Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        canvas {
+            display: block;
+            margin-top: 10px;
+        }
+        #controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="fractalCanvas"></canvas>
+    <div id="controls">
+        <button id="zoomIn">Zoom In</button>
+        <button id="zoomOut">Zoom Out</button>
+    </div>
+    <script>
+        const canvas = document.getElementById('fractalCanvas');
+        const ctx = canvas.getContext('2d');
 
+        let width, height;
+        let scale = 200; // Initial scale for zoom level 1
+        let offsetX = 0; // Offset in fractal space
+        let offsetY = 0; // Offset in fractal space
+        let zoomFactor = 1; // Tracks cumulative zoom
+
+        const tileSize = 50;  // Tile size to manage rendering chunks
+
+        function resizeCanvas() {
+            width = window.innerWidth;
+            height = window.innerHeight - 60;
+            canvas.width = width;
+            canvas.height = height;
+            drawFractal();
+        }
+
+        function drawTile(xStart, yStart, tileScale) {
+            const imageData = ctx.createImageData(tileSize, tileSize);
+            const data = imageData.data;
+
+            for (let px = 0; px < tileSize; px++) {
+                for (let py = 0; py < tileSize; py++) {
+                    let zx = 0, zy = 0;
+
+                    // Calculate fractal coordinates based on current scale and offset
+                    const cx = (xStart + px - width / 2) / tileScale + offsetX;
+                    const cy = (yStart + py - height / 2) / tileScale + offsetY;
+                    let iteration = 0;
+                    const maxIterations = Math.min(500, 50 + Math.log(tileScale) * 10);
+
+                    while (zx * zx + zy * zy < 4 && iteration < maxIterations) {
+                        const xtemp = zx * zx - zy * zy + cx;
+                        zy = 2 * zx * zy + cy;
+                        zx = xtemp;
+                        iteration++;
+                    }
+
+                    const color = iteration === maxIterations ? 0 : (iteration / maxIterations) * 255;
+                    const pixelIndex = (py * tileSize + px) * 4;
+                    data[pixelIndex] = color;       // Red
+                    data[pixelIndex + 1] = 0;       // Green
+                    data[pixelIndex + 2] = color;   // Blue
+                    data[pixelIndex + 3] = 255;     // Alpha
+                }
+            }
+            ctx.putImageData(imageData, xStart, yStart);
+        }
+
+        function drawFractal() {
+            ctx.clearRect(0, 0, width, height);
+            const effectiveScale = scale * zoomFactor; // Dynamic scaling for current zoom level
+
+            // Draw tiles for only visible area
+            for (let x = 0; x < width; x += tileSize) {
+                for (let y = 0; y < height; y += tileSize) {
+                    drawTile(x, y, effectiveScale);
+                }
+            }
+        }
+
+        function zoom(factor) {
+            zoomFactor *= factor;
+            drawFractal();
+        }
+
+        function pan(dx, dy) {
+            const panScale = 1 / (scale * zoomFactor); // Pan distance scales with zoom
+            offsetX += dx * panScale;
+            offsetY += dy * panScale;
+            drawFractal();
+        }
+
+        document.getElementById('zoomIn').addEventListener('click', () => zoom(1.2));
+        document.getElementById('zoomOut').addEventListener('click', () => zoom(1 / 1.2));
+
+        window.addEventListener('keydown', (event) => {
+            const panAmount = 20; // Adjust for fine-tuned panning at all zoom levels
+            switch (event.key) {
+                case 'ArrowUp':
+                    pan(0, -panAmount);
+                    break;
+                case 'ArrowDown':
+                    pan(0, panAmount);
+                    break;
+                case 'ArrowLeft':
+                    pan(-panAmount, 0);
+                    break;
+                case 'ArrowRight':
+                    pan(panAmount, 0);
+                    break;
+            }
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+    </script>
+</body>
+</html>
