@@ -5,12 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Infinite Fractal Viewer</title>
     <style>
-        select {
-        padding: 10px;
-        font-size: 16px;
-        background-color: white;
-        border: 1px solid black;
-        }
         body {
             margin: 0;
             overflow: hidden;
@@ -18,14 +12,26 @@
             flex-direction: column;
             align-items: center;
         }
-        canvas {
-            display: block;
-            margin-top: 10px;
+        #fractalContainer {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         #controls {
             display: flex;
             gap: 10px;
-            margin-bottom: 10px;
+            padding: 10px;
+            position: absolute;
+            top: 10px;
+            z-index: 10; /* Ensures the controls stay above the canvas */
+            background: rgba(255, 255, 255, 0.8); /* Slightly transparent background */
+            border-radius: 5px;
+        }
+        canvas {
+            display: block;
         }
         button, select {
             padding: 10px;
@@ -34,14 +40,16 @@
     </style>
 </head>
 <body>
-    <canvas id="fractalCanvas"></canvas>
-    <div id="controls">
-        <button id="zoomIn">Zoom In</button>
-        <button id="zoomOut">Zoom Out</button>
-        <select id="fractalType">
-            <option value="mandelbrot">Mandelbrot</option>
-            <option value="julia">Julia</option>
-        </select>
+    <div id="fractalContainer">
+        <div id="controls">
+            <button id="zoomIn">Zoom In</button>
+            <button id="zoomOut">Zoom Out</button>
+            <select id="fractalType">
+                <option value="mandelbrot">Mandelbrot</option>
+                <option value="julia">Julia</option>
+            </select>
+        </div>
+        <canvas id="fractalCanvas"></canvas>
     </div>
     <script>
         const canvas = document.getElementById('fractalCanvas');
@@ -57,7 +65,7 @@
 
         function resizeCanvas() {
             width = window.innerWidth;
-            height = window.innerHeight - 60;
+            height = window.innerHeight;
             canvas.width = width;
             canvas.height = height;
             drawFractal();
@@ -79,7 +87,7 @@
                         cy = (yStart + py - height / 2) / tileScale + offsetY;
                         zx = zy = 0;
                     } else if (fractalType === 'julia') {
-                        cx = -0.7; // Julia set parameter
+                        cx = -0.7;
                         cy = 0.27015;
                         zx = (xStart + px - width / 2) / tileScale + offsetX;
                         zy = (yStart + py - height / 2) / tileScale + offsetY;
