@@ -3,132 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infinite Fractal Viewer</title>
+    <title>Fractal Viewer</title>
     <style>
-        body {
+        body, html {
             margin: 0;
+            padding: 0;
             overflow: hidden;
             display: flex;
             flex-direction: column;
             align-items: center;
-        }
-        #fractalContainer {
-            position: relative;
-            width: 100%;
-            height: 100vh;
+            background-color: #ffffff;
         }
         #controls {
             display: flex;
             gap: 10px;
+            margin: 10px;
             padding: 10px;
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 10;
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid black;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 1px solid #333;
             border-radius: 5px;
+            z-index: 10;
+        }
+        #controls button, #controls select {
+            padding: 8px;
+            font-size: 16px;
         }
         canvas {
-            display: block;
-            width: 100%;
-            height: 100vh;
-        }
-        button, select {
-            padding: 10px;
-            font-size: 16px;
+            border: 1px solid #333;
+            flex: 1;
         }
     </style>
 </head>
 <body>
-    <div id="fractalContainer">
-        <div id="controls">
-            <button id="zoomIn">Zoom In</button>
-            <button id="zoomOut">Zoom Out</button>
-            <select id="fractalType">
-                <option value="mandelbrot">Mandelbrot</option>
-                <option value="julia">Julia</option>
-            </select>
-        </div>
-        <canvas id="fractalCanvas"></canvas>
+    <div id="controls">
+        <button id="zoomIn">Zoom In</button>
+        <button id="zoomOut">Zoom Out</button>
+        <select id="fractalType">
+            <option value="mandelbrot">Mandelbrot</option>
+            <option value="julia">Julia</option>
+        </select>
     </div>
+    <canvas id="fractalCanvas"></canvas>
+
     <script>
         const canvas = document.getElementById('fractalCanvas');
         const ctx = canvas.getContext('2d');
         const fractalTypeSelect = document.getElementById('fractalType');
-
-        let width, height;
+        
         let scale = 200;
         let offsetX = 0;
         let offsetY = 0;
         let zoomFactor = 1;
-        const tileSize = 5;
+        let width, height;
 
+        // Resize the canvas and draw fractal on window resize
         function resizeCanvas() {
             width = window.innerWidth;
-            height = window.innerHeight;
+            height = window.innerHeight - 60; // Account for controls height
             canvas.width = width;
             canvas.height = height;
             drawFractal();
         }
 
-        function drawTile(xStart, yStart, tileScale, fractalType) {
-            const imageData = ctx.createImageData(tileSize, tileSize);
-            const data = imageData.data;
-
-            for (let px = 0; px < tileSize; px++) {
-                for (let py = 0; py < tileSize; py++) {
-                    let zx = 0, zy = 0;
-                    let cx, cy;
-                    const maxIterations = Math.min(500, 50 + Math.log(tileScale) * 10);
-                    let iteration = 0;
-
-                    if (fractalType === 'mandelbrot') {
-                        cx = (xStart + px - width / 2) / tileScale + offsetX;
-                        cy = (yStart + py - height / 2) / tileScale + offsetY;
-                        zx = zy = 0;
-                    } else if (fractalType === 'julia') {
-                        cx = -0.7;
-                        cy = 0.27015;
-                        zx = (xStart + px - width / 2) / tileScale + offsetX;
-                        zy = (yStart + py - height / 2) / tileScale + offsetY;
-                    }
-
-                    while (zx * zx + zy * zy < 4 && iteration < maxIterations) {
-                        const xtemp = zx * zx - zy * zy + cx;
-                        zy = 2 * zx * zy + cy;
-                        zx = xtemp;
-                        iteration++;
-                    }
-
-                    const color = iteration === maxIterations ? 0 : (iteration / maxIterations) * 255;
-                    const pixelIndex = (py * tileSize + px) * 4;
-                    data[pixelIndex] = color;
-                    data[pixelIndex + 1] = 0;
-                    data[pixelIndex + 2] = color;
-                    data[pixelIndex + 3] = 255;
-                }
-            }
-            ctx.putImageData(imageData, xStart, yStart);
-        }
-
+        // Draw fractal tiles based on selected type
         function drawFractal() {
             ctx.clearRect(0, 0, width, height);
             const effectiveScale = scale * zoomFactor;
             const fractalType = fractalTypeSelect.value;
-
-            for (let x = 0; x < width; x += tileSize) {
-                for (let y = 0; y < height; y += tileSize) {
-                    drawTile(x, y, effectiveScale, fractalType);
+            
+            for (let x = 0; x < width; x += 5) {
+                for (let y = 0; y < height; y += 5) {
+                    const color = fractalColor(x, y, fractalType, effectiveScale);
+                    ctx.fillStyle = `rgb(${color}, 0, ${color})`;
+                    ctx.fillRect(x, y, 5, 5); // Draw small squares instead of individual pixels
                 }
             }
         }
 
+        // Calculate color for each fractal type
+        function fractalColor(px, py, type, tileScale) {
+            let zx, zy, cx, cy;
+            const maxIterations = 100;
+
+            if (type === 'mandelbrot') {
+                cx = (px - width / 2) / tileScale + offsetX;
+                cy = (py - height / 2) / tileScale + offsetY;
+                zx = zy = 0;
+            } else {
+                cx = -0.7;
+                cy = 0.27015;
+                zx = (px - width / 2) / tileScale + offsetX;
+                zy = (py - height / 2) / tileScale + offsetY;
+            }
+
+            let iteration = 0;
+            while (zx * zx + zy * zy < 4 && iteration < maxIterations) {
+                const xtemp = zx * zx - zy * zy + cx;
+                zy = 2 * zx * zy + cy;
+                zx = xtemp;
+                iteration++;
+            }
+
+            return iteration === maxIterations ? 0 : (iteration / maxIterations) * 255;
+        }
+
+        // Zoom function
         function zoom(factor) {
             zoomFactor *= factor;
             drawFractal();
         }
 
+        // Pan function for navigation
         function pan(dx, dy) {
             const panScale = 1 / (scale * zoomFactor);
             offsetX += dx * panScale;
@@ -136,6 +121,7 @@
             drawFractal();
         }
 
+        // Event listeners for UI controls
         document.getElementById('zoomIn').addEventListener('click', () => zoom(1.2));
         document.getElementById('zoomOut').addEventListener('click', () => zoom(1 / 1.2));
         fractalTypeSelect.addEventListener('change', drawFractal);
